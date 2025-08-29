@@ -17,6 +17,7 @@ local options = {
 	render = render_options.background,
 	enable_hex = true,
 	enable_rgb = true,
+	enable_color3 = true,
 	enable_hsl = true,
 	enable_hsl_without_function = true,
 	enable_var_usage = true,
@@ -67,6 +68,10 @@ function M.highlight_colors(min_row, max_row, active_buffer_id)
 		RGB = {
 			is_enabled = options.enable_rgb,
 			patterns = { color_patterns.rgb_regex },
+		},
+		COLOR3 = {
+			is_enabled = options.enable_color3,
+			patterns = { color_patterns.roblox_color3_rgb_regex, color_patterns.roblox_color3_new_regex },
 		},
 		HSL = {
 			is_enabled = options.enable_hsl,
@@ -212,7 +217,7 @@ end
 
 ---Callback to manually show the highlights
 function M.turn_on()
-	local buffers = vim.fn.getbufinfo({ buflisted = true })
+	local buffers = vim.fn.getbufinfo({ buflisted = 1 })
 
 	for _, buffer in ipairs(buffers) do
 		M.refresh_highlights(buffer.bufnr, false)
@@ -223,7 +228,7 @@ end
 
 ---Callback to manually hide the highlights
 function M.turn_off()
-	local buffers = vim.fn.getbufinfo({ buflisted = true })
+	local buffers = vim.fn.getbufinfo({ buflisted = 1 })
 
 	for _, buffer in ipairs(buffers) do
 		M.clear_highlights(buffer.bufnr)
