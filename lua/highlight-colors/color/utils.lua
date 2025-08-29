@@ -17,7 +17,7 @@ local M = {}
 function M.get_color_value(color, row_offset, custom_colors, enable_short_hex)
 	if patterns.is_roblox_color3_hex_color(color) then
 		local hex_value = M.get_hex_from_color3(color)
-		color = hex_value
+		return M.get_color_value(hex_value, row_offset, custom_colors, enable_short_hex)
 	end
 
 	if enable_short_hex and patterns.is_short_hex_color(color) then
