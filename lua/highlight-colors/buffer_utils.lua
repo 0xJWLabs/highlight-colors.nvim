@@ -26,18 +26,16 @@ function M.remove_nested_matches(positions)
 	for i, pos1 in ipairs(positions) do
 		local is_nested = false
 		for j, pos2 in ipairs(positions) do
+			-- Check if pos1 is different from pos2 and on the same row
 			if i ~= j and pos1.row == pos2.row then
-				-- Check if pos1 is fully contained within pos2, but not identical
-				if
-					pos1.start_column >= pos2.start_column
-					and pos1.end_column <= pos2.end_column
-					and not (pos1.start_column == pos2.start_column and pos1.end_column == pos2.end_column)
-				then
+				-- Check if pos1 is fully contained within pos2
+				if pos1.start_column >= pos2.start_column and pos1.end_column <= pos2.end_column then
 					is_nested = true
-					break
+					break -- Found a container, no need to check further for this pos1
 				end
 			end
 		end
+		-- Only keep the position if it was not nested within any other
 		if not is_nested then
 			table.insert(final_positions, pos1)
 		end
@@ -52,56 +50,40 @@ end
 ---@param row_offset number
 ---@return {row: number, start_column: number, end_column: number, value: string}[]
 function M.get_positions_by_regex(patterns, min_row, max_row, active_buffer_id, row_offset)
-	local all_positions = {}
+	local positions = {}
 	local content = M.get_buffer_contents(min_row, max_row, active_buffer_id)
 
-	for key, line in pairs(content) do
-		for _, pattern in pairs(patterns) do
-			local search_offset = 1
-			while true do
-				-- Use string.find to get reliable positions
-				local start_pos, end_pos = string.find(line, pattern, search_offset, true)
-				if not start_pos then
-					break
-				end
-
-				local match = string.sub(line, start_pos, end_pos)
+	for _, pattern in pairs(patterns) do
+		for key, value in pairs(content) do
+			for match in string.gmatch(value, pattern) do
+				local row = key + min_row - row_offset
+				local column_offset = M.get_column_offset(positions, match, row)
+				local pattern_without_usage_regex = M.remove_color_usage_pattern(match)
+				local valid_start, start_column = pcall(vim.fn.match, value, pattern_without_usage_regex, column_offset)
+				local valid_end, end_column = pcall(vim.fn.matchend, value, pattern_without_usage_regex, column_offset)
 				local isFalsePositiveCSSVariable = match == ": var"
 
-				if not isFalsePositiveCSSVariable then
-					-- For named colors, the match might be '= blue'. We need to find the position of just 'blue'.
-					local final_start = start_pos - 1 -- Convert to 0-based for Neovim
-					local final_end = end_pos
-					local clean_match = M.remove_color_usage_pattern(match)
-
-					-- If the string was cleaned, find the start of the clean part within the full match
-					if #clean_match < #match then
-						local clean_start_in_match, _ = string.find(match, clean_match, 1, true)
-						if clean_start_in_match then
-							final_start = (start_pos + clean_start_in_match - 1) - 1 -- Adjust start and convert to 0-based
-							final_end = final_start + #clean_match
-						end
-					end
-
-					table.insert(all_positions, {
+				if valid_start and valid_end and not isFalsePositiveCSSVariable then
+					table.insert(positions, {
 						value = match,
-						row = key + min_row - row_offset,
-						start_column = final_start,
-						end_column = final_end,
+						row = row,
+						start_column = start_column,
+						end_column = end_column,
 					})
 				end
-				-- Start the next search after the beginning of the current match to allow for overlapping patterns
-				search_offset = start_pos + 1
 			end
 		end
 	end
 
-	-- Filter out nested matches at the very end
-	return M.remove_nested_matches(all_positions)
+	-- Filter out nested matches before returning
+	return M.remove_nested_matches(positions)
 end
 
--- This function is no longer needed with the new string.find loop
--- but is kept here for reference if you need to revert.
+-- Handles repeated colors in the same row: e.g. `#fff #fff`
+---@param positions {row: number, start_column: number, end_column: number, value: string}[]
+---@param match string
+---@param row number
+---@return number | nil
 function M.get_column_offset(positions, match, row)
 	local repeated_colors_in_row = table_utils.filter(positions, function(position)
 		return position.value == match and position.row == row
