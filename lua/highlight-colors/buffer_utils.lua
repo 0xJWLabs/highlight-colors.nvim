@@ -17,18 +17,37 @@ function M.get_buffer_contents(min_row, max_row, active_buffer_id)
 	return vim.api.nvim_buf_get_lines(active_buffer_id, min_row, max_row, false)
 end
 
+---Removes color matches that are fully contained within another match.
+---This prevents highlighting both `Color3.fromHex("#FFFFFF")` and the inner `#FFFFFF`.
+---@param positions {row: number, start_column: number, end_column: number, value: string}[]
+---@return {row: number, start_column: number, end_column: number, value: string}[]
+function M.remove_nested_matches(positions)
+	local final_positions = {}
+	for i, pos1 in ipairs(positions) do
+		local is_nested = false
+		for j, pos2 in ipairs(positions) do
+			-- Check if pos1 is different from pos2 and on the same row
+			if i ~= j and pos1.row == pos2.row then
+				-- Check if pos1 is fully contained within pos2
+				if pos1.start_column >= pos2.start_column and pos1.end_column <= pos2.end_column then
+					is_nested = true
+					break -- Found a container, no need to check further for this pos1
+				end
+			end
+		end
+		-- Only keep the position if it was not nested within any other
+		if not is_nested then
+			table.insert(final_positions, pos1)
+		end
+	end
+	return final_positions
+end
+
 ---Returns the color matches based on the received lua patterns
 ---@param min_row number
 ---@param max_row number
 ---@param active_buffer_id number
 ---@param row_offset number
----@usage buffer_utils.get_positions_by_regex(
----           {patterns.hsl_without_func_regex}, 0, 10, 1, 0
----       ) => Returns {
----           {row = 1, start_column = 10, end_column = 16, value = "#FFFFFF"}
----           {row = 2, start_column = 1, end_column = 8, value = ": blue"}
----           {row = 2, start_column = 1, end_column = 8, value = "rgb(240, 231, 14)"}
----       }
 ---@return {row: number, start_column: number, end_column: number, value: string}[]
 function M.get_positions_by_regex(patterns, min_row, max_row, active_buffer_id, row_offset)
 	local positions = {}
@@ -56,26 +75,14 @@ function M.get_positions_by_regex(patterns, min_row, max_row, active_buffer_id, 
 		end
 	end
 
-	return positions
+	-- Filter out nested matches before returning
+	return M.remove_nested_matches(positions)
 end
 
 -- Handles repeated colors in the same row: e.g. `#fff #fff`
--- This code will search if the color that is going to be added is already present in the same row in `positions` table
--- If the color already exists in the same row, it will set `column_offset` to the end_column of the previous color
--- With this logic we can control the offset of the regex when calling `vim.fn.match`
--- Real case scenario:
---   1. Detects and adds the first color to `positions` table
---   2. Detects the second color in the same row
---   3. Sets column_offset based on the '↓' column
---         ↓
---      #fff #fff
---   4. Runs vim.fn.match with the column_offset on it. Avoids highlighting the same color again and leaving the second color without highlight
 ---@param positions {row: number, start_column: number, end_column: number, value: string}[]
 ---@param match string
 ---@param row number
----@usage buffer_utils.get_column_offset({
----           {row = 1, start_column = 1, end_column = 4, value = "#fff"}
----       }, "#fff", row) => Returns 4
 ---@return number | nil
 function M.get_column_offset(positions, match, row)
 	local repeated_colors_in_row = table_utils.filter(positions, function(position)
@@ -86,11 +93,6 @@ function M.get_column_offset(positions, match, row)
 end
 
 ---Removes useless data from the colors string in case of named colors
----
----Named colors have a safe guard to prevent false positives, therefore the named colors pattern is configured to only work when a color usage is detected
----e.g 'background = blue' will get highlighted while 'blue is great' will not.
----
----The issue with this logic is that the `match` value for said color would be `= blue`, which is not what we want. This function transforms this string to just `blue`
 ---@param match string
 ---@usage remove_color_usage_pattern(": blue") => Returns "blue"
 ---@return string

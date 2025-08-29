@@ -55,11 +55,11 @@ function M.get_color_value(color, row_offset, custom_colors, enable_short_hex)
 		return converters.rgb_to_hex(rgb_table[1], rgb_table[2], rgb_table[3])
 	end
 
-	if patterns.is_hsl_without_func_color(color) then
-		local hsl_table = M.get_hsl_without_func_values(color)
-		local rgb_table = converters.hsl_to_rgb(hsl_table[1], hsl_table[2], hsl_table[3])
-		return converters.rgb_to_hex(rgb_table[1], rgb_table[2], rgb_table[3])
-	end
+	-- if patterns.is_hsl_without_func_color(color) then
+	-- 	local hsl_table = M.get_hsl_without_func_values(color)
+	-- 	local rgb_table = converters.hsl_to_rgb(hsl_table[1], hsl_table[2], hsl_table[3])
+	-- 	return converters.rgb_to_hex(rgb_table[1], rgb_table[2], rgb_table[3])
+	-- end
 
 	if patterns.is_named_color({ M.get_css_named_color_pattern() }, color) then
 		return M.get_css_named_color_value(color)
