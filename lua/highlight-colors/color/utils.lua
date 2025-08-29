@@ -15,6 +15,11 @@ local M = {}
 ---@usage get_color_value("rgb(255, 255, 255)") => Returns "#FFFFFF"
 ---@return string | nil
 function M.get_color_value(color, row_offset, custom_colors, enable_short_hex)
+	if patterns.is_roblox_color3_hex_color(color) then
+		local hex_value = M.get_hex_from_color3(color)
+		color = hex_value
+	end
+
 	if enable_short_hex and patterns.is_short_hex_color(color) then
 		return converters.short_hex_to_hex(color)
 	end
@@ -34,6 +39,13 @@ function M.get_color_value(color, row_offset, custom_colors, enable_short_hex)
 		local rgb_table = M.get_color3_new_values(color)
 		if #rgb_table >= 3 then
 			return converters.rgb_to_hex(tostring(rgb_table[1]), tostring(rgb_table[2]), tostring(rgb_table[3]))
+		end
+	end
+
+	if patterns.is_roblox_color3_hsv_color(color) then
+		local rgb_table = M.get_hsv_values(color)
+		if #rgb_table >= 3 then
+			return converters.hsv_to_rgb(rgb_table[1], rgb_table[2], rgb_table[3])
 		end
 	end
 
@@ -100,6 +112,14 @@ function M.get_rgb_values(color)
 	return rgb_table
 end
 
+---Returns the hex string from a Color3.fromHex string
+---@param color string
+---@usage get_hex_from_color3('Color3.fromHex("#FFFFFF")') => Returns "#FFFFFF"
+---@return string|nil
+function M.get_hex_from_color3(color)
+	return string.match(color, "#%x+")
+end
+
 ---Returns the RGB (0-255) values from a Color3.new string
 ---@param color string
 ---@usage get_color3_new_values("Color3.new(1, 0.5, 0)") => Returns {255, 127, 0}
@@ -117,6 +137,23 @@ function M.get_color3_new_values(color)
 	end
 
 	return rgb_table
+end
+
+---Returns the HSV (0-1) values from a Color3.fromHSV string
+---@param color string
+---@usage get_hsv_values("Color3.fromHSV(1, 0.5, 0)") => Returns {1, 0.5, 0}
+---@return number[]
+function M.get_hsv_values(color)
+	local hsv_table = {}
+	local values_inside_parentheses = string.match(color, "%((.*)%)")
+
+	if values_inside_parentheses then
+		for color_number in string.gmatch(values_inside_parentheses, "%d*%.?%d+") do
+			table.insert(hsv_table, tonumber(color_number))
+		end
+	end
+
+	return hsv_table
 end
 
 ---Returns the hsl table of a hsl string

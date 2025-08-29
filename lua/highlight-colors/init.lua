@@ -71,7 +71,12 @@ function M.highlight_colors(min_row, max_row, active_buffer_id)
 		},
 		COLOR3 = {
 			is_enabled = options.enable_color3,
-			patterns = { color_patterns.roblox_color3_rgb_regex, color_patterns.roblox_color3_new_regex },
+			patterns = {
+				color_patterns.roblox_color3_rgb_regex,
+				color_patterns.roblox_color3_new_regex,
+				color_patterns.roblox_color3_hex_regex,
+				color_patterns.roblox_color3_hsv_regex,
+			},
 		},
 		HSL = {
 			is_enabled = options.enable_hsl,

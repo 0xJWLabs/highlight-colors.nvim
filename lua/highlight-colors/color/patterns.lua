@@ -9,10 +9,13 @@ M.hsl_regex = "hsla?[(]+"
 	.. "[%s,/]?%s*%d*%.?%d*%%?%s*[)]+"
 M.hsl_without_func_regex = ":" .. string.rep("%s*%d*%.?%d+%%?d?e?g?t?u?r?n?%s*", 3, "[,%s]")
 
--- NEW: Roblox Color3.fromRgb Regex
--- Matches: Color3.fromRgb(255, 255, 255)
-M.roblox_color3_rgb_regex = "Color3%.fromRgb%s*%(" .. string.rep("%s*%d+%s*", 3, "%s*,%s*") .. "%s*%)"
+-- Roblox Color3 Regex
+M.roblox_color3_rgb_regex = "Color3%.fromRGB%s*%(" .. string.rep("%s*%d+%s*", 3, "%s*,%s*") .. "%s*%)"
 M.roblox_color3_new_regex = "Color3%.new%s*%(" .. string.rep("%s*%d*%.?%d+%s*", 3, "%s*,%s*") .. "%s*%)"
+-- NEW: Color3.fromHex
+M.roblox_color3_hex_regex = 'Color3%.fromHex%s*%("%s*' .. M.hex_regex:gsub("%+f%[%^%%w_]", "") .. '%s*"%)'
+-- NEW: Color3.fromHSV
+M.roblox_color3_hsv_regex = "Color3%.fromHSV%s*%(" .. string.rep("%s*%d*%.?%d+%s*", 3, "%s*,%s*") .. "%s*%)"
 
 M.var_regex = "%-%-[%d%a-_]+"
 M.var_declaration_regex = M.var_regex .. ":%s*" .. M.hex_regex
@@ -78,22 +81,34 @@ function M.is_var_color(color)
 	return string.match(color, M.var_usage_regex) ~= nil
 end
 
--- NEW: Roblox Color3.fromRgb Checker Function
----Checks whether a color is a Roblox Color3.fromRgb
+---Checks whether a color is a Roblox Color3.fromRGB
 ---@param color string
----@usage is_roblox_color3_rgb_color("Color3.fromRgb(255, 0, 128)") => Returns true
 ---@return boolean
 function M.is_roblox_color3_rgb_color(color)
 	return string.match(color, M.roblox_color3_rgb_regex) ~= nil
 end
 
--- NEW: Roblox Color3.new Checker Function
 ---Checks whether a color is a Roblox Color3.new
 ---@param color string
----@usage is_roblox_color3_new_color("Color3.new(0, 0, 0)") => Returns true
 ---@return boolean
 function M.is_roblox_color3_new_color(color)
 	return string.match(color, M.roblox_color3_new_regex) ~= nil
+end
+
+-- NEW: Roblox Color3.fromHex Checker Function
+---Checks whether a color is a Roblox Color3.fromHex
+---@param color string
+---@return boolean
+function M.is_roblox_color3_hex_color(color)
+	return string.match(color, M.roblox_color3_hex_regex) ~= nil
+end
+
+-- NEW: Roblox Color3.fromHSV Checker Function
+---Checks whether a color is a Roblox Color3.fromHSV
+---@param color string
+---@return boolean
+function M.is_roblox_color3_hsv_color(color)
+	return string.match(color, M.roblox_color3_hsv_regex) ~= nil
 end
 
 ---Checks whether a color is a custom color

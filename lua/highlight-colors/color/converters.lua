@@ -102,4 +102,43 @@ function M.hsl_to_rgb(h, s, l)
 	}
 end
 
+---Converts HSV color values to an RGB table.
+---This function is based on the standard HSV to RGB conversion algorithm.
+---@param h number Hue, expected to be in the range [0, 1].
+---@param s number Saturation, expected to be in the range [0, 1].
+---@param v number Value, expected to be in the range [0, 1].
+---@usage hsv_to_rgb(0, 1, 1) => Returns {255, 0, 0}
+---@return number[] {r, g, b} in the range [0, 255].
+function M.hsv_to_rgb(h, s, v)
+	local r, g, b
+
+	if s == 0 then
+		r, g, b = v, v, v -- achromatic (grey)
+	else
+		local i = math.floor(h * 6)
+		local f = h * 6 - i
+		local p = v * (1 - s)
+		local q = v * (1 - f * s)
+		local t = v * (1 - (1 - f) * s)
+
+		i = i % 6
+
+		if i == 0 then
+			r, g, b = v, t, p
+		elseif i == 1 then
+			r, g, b = q, v, p
+		elseif i == 2 then
+			r, g, b = p, v, t
+		elseif i == 3 then
+			r, g, b = p, q, v
+		elseif i == 4 then
+			r, g, b = t, p, v
+		else -- i == 5
+			r, g, b = v, p, q
+		end
+	end
+
+	return { math.floor(r * 255), math.floor(g * 255), math.floor(b * 255) }
+end
+
 return M
